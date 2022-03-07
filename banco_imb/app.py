@@ -1,9 +1,11 @@
 from datetime import timedelta
 import json
+import logging
+import os
 from time import strftime
 from flask import Flask, redirect,render_template, request,g,flash, session
-# from an import Tuple
-
+from .db import load_history,load_jogadores,save_jogadores,save_jogo,get_ops_instance
+import peewee
 config = {
     "SECRET_KEY":"afas34$$56sad9}{`0df",
     "PERMANENT_SESSION_LIFETIME": timedelta(hours=5),
@@ -13,6 +15,15 @@ config = {
 app = Flask(__name__)
 
 app.config.from_mapping(config)
+db = get_ops_instance()
+
+# @app.before_first_request
+# def cria_db_and_hist():
+#     os.path.exists()
+
+@app.before_request
+def check():
+    if load_jogadores(): ...
 
 @app.post("/pagar")
 def pagar():
@@ -52,20 +63,27 @@ def pagar():
 def novo_jogador():
 
     nome = request.form.get("nome","").strip()
-    jogadores = load_jogadores()
-    if nome in jogadores:
-        flash("jogador "+nome+" já existe!","info")
+    # jogadores = load_jogadores()
+    try:
+        db.new_player(name=nome,cash=25_000.00)
+    except peewee.IntegrityError as ie:
+        #pra pegar unique name pewe
+        flash(f"{nome} já existe! Tente outro")
         return redirect("/")
 
     if old_nome:=session.get("nome"):
         session.pop("nome")
-        jogadores.pop(old_nome)
+        try:
+            db.get_player_by_name(old_nome)
+        except peewee.DoesNotExist as dne:
+            logging.error("player saved in session do not exist in db!\nDetails: "+str(dne))
+            
         flash(f"{old_nome} retirado","info")
     
     session.update({"nome":nome})
 
-    jogadores.update({nome:25000})
-    save_jogadores(jogadores)
+    # jogadores.update({"name":nome,"cash":25000})
+    # save_jogadores(jogadores)
 
     return redirect("/")
 
@@ -101,57 +119,25 @@ def index():
     jogadores=load_jogadores()
 
     if jogadores.get('start'):
-        jogadores.pop('start')
+        try:
+            jogadores.pop('start')
+        except KeyError:
+            logging.error("no start set")
         return render_template(
             "jogo.html",
             jogadores=jogadores,
             me=session.get('nome',False) 
         )
     else:
-        jogadores.pop('start')
+        try:
+            jogadores.pop('start')
+        except KeyError:
+            logging.error("no start set")
         return render_template(
             "index.html",
             jogadores=jogadores,
             me=session.get('nome',False) 
         )
 
-
-def load_jogadores()->dict:
-    
-    jogdores:dict
-    
-    with open("bd.json") as file:
-        jogadores = json.loads(
-            file.read()
-    )
-    return jogadores
-
-def load_history()->list:
-    
-    hisory:dict
-    
-    with open("history.json") as file:
-        history = json.loads(
-            file.read()
-    )
-    return history
-
-def save_jogadores(jogadores:dict):    
-    with open("bd.json",'w') as file:
-        return file.write(
-            json.dumps(jogadores)
-        )
-
-def save_jogo():
-    jogadores = load_jogadores()
-    history = load_history()
-    jogadores.update(
-        {"datetime":strftime("%d/%m/%Y - %H:%M:%S")}
-    )
-    history.append(jogadores)
-    with open("history.json",'w') as file:
-        return file.write(
-            json.dumps(history)
-        )
 
 

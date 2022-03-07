@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block main %}
+{% for tipo,flash in get_flashed_messages('info') %}
+    {{flash}}
+{% endfor %}
+{% if nome %}
+    Olá {{nome}}
+    Escreva o nome dos outros jogadores
+    <form action="/novo_jogo" method="post">
+        <input type="tel" name="nome1" id="" placeholder="Digite o apelido..." required>
+        <input type="tel" name="nome2" id="" placeholder="Digite o apelido..." required>
+        <input type="tel" name="nome3" id="" placeholder="Digite o apelido..." required>
+        <input type="tel" name="nome4" id="" placeholder="Digite o apelido..." required>
+        <input type="tel" name="nome5" id="" placeholder="Digite o apelido..." required>
+        <input type="submit" value="Começar!">
+    </form>
+    
+{% else %}
+    
+<h3>Quem é você?</h3>
+
+<form action="/novo_jogo" method="post">
+    <input type="tel" name="nome" id="" placeholder="Digite seu apelido..." required>
+    <input type="submit" value="Começar!">
+    
+</form>
+<hr>
+
+{% endif %}
+
+
+{% endblock %}

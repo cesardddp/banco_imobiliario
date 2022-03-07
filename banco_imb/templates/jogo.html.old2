@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block main %}
+{% for tipo,flash in get_flashed_messages('info') %}
+{{flash}}
+{% endfor %}
+<h3>jand: {{jogadores.jand}}</h3>
+<h3>cesar: {{jogadores.cesar}}</h3>
+<h3>caleb: {{jogadores.caleb}}</h3>
+
+<hr>
+<h4>pagar:</h4>
+<form action="/pagar" method="post" id="app">
+
+    <select name="pagador" id="" v-model="opt1" :select="see()">
+        <option v-for="(opt, index) in options1" :key="index" :value="opt.value">
+            @{opt.text}
+        </option>
+
+    </select>
+    <select name="recebedor" id="" v-model="opt2" :select="see()">
+        <option v-for="opt in options2" :key="index" :value="opt.value">
+            @{opt.text}
+        </option>
+    </select>
+    <input type="number" name="valor" id="" value="500">
+    <input type="submit" value="pagar">
+</form>
+<hr>
+<script>
+    const App = {
+        compilerOptions:{
+            delimiters:['@{', '}']
+        },
+        data() {
+            return {
+                options1: [{
+                        value: "jand",
+                        text: "jand"
+                    },
+                    {
+                        value: "caleb",
+                        text: "caleb"
+                    },
+                    {
+                        value: "cesar",
+                        text: "cesar"
+                    },
+                ],
+                options2: [{
+                        value: "jand",
+                        text: "jand"
+                    },
+                    {
+                        value: "caleb",
+                        text: "caleb"
+                    },
+                    {
+                        value: "cesar",
+                        text: "cesar"
+                    },
+                ],
+                opt2: "",
+                opt1: ""
+            }
+        },
+        methods: {
+            see() {
+                // debugger
+                console.log(
+                    this.opt1
+                )
+            },
+            get_url() {
+
+                axios
+                    .get("https://", {
+                        headers: {
+                            "Accept": "application/json"
+                        },
+                    })
+                    .then(
+                        response => {
+
+                        }
+                    )
+                    .catch(
+                        error => {
+
+                        }
+                    )
+            }
+        },
+    }
+    const app = Vue.createApp(App)
+    // app.config.compilerOptions.delimiters = ['@{', '}']
+
+    app.mount("#app")
+</script>
+
+
+{% endblock %}

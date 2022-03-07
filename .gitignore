@@ -3,4 +3,10 @@ src/__pycache__/
 src/templates/jogo.html.old2
 src/templates/novo_jogo.html
 bd.json
-tests/__pycache__/
+*/__pycache__/*
+dist/banco_imb-0.1.0-py3-none-any.whl
+dist/banco_imb-0.1.0.tar.gz
+teste
+players.db
+teste.db
+poetry.lock

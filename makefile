@@ -1,4 +1,4 @@
 run:
-	export FLASK_APP=src;\
+	export FLASK_APP=banco_imb;\
 	export FLASK_ENV=development;\
 	flask run;\
