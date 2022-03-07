@@ -1,0 +1,6 @@
+history.json
+src/__pycache__/
+src/templates/jogo.html.old2
+src/templates/novo_jogo.html
+bd.json
+tests/__pycache__/
