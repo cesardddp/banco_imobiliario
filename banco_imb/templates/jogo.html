@@ -7,85 +7,64 @@
 <div id="app">
     <ul>
         {% for jogador in jogadores %}
-        <li style="{{'color:red;' if jogador==me else '' }}" >
-        {{jogador}} - ${{jogadores[jogador]}}
-    </li>
-    {% endfor %}
-</ul>
-<h4>pagar:</h4>
+        <li style="{{'color:red;' if jogador==me else '' }}">
+            {{jogador.name}} - ${{'%.2f' % jogador.cash}} </li>
+        {% endfor %}
+    </ul>
+    <h4>pagar:</h4>
 
 
-<form action="/pagar" method="post">
-    <select name="pagador" id="" v-model="opt1" :select="see()">
-        <option v-for="(opt, index) in options1" :key="index" :value="opt.value">
-            @{opt.text}
-        </option>
+    <form action="/pagar" method="post">
+        <select name="pagador" id="" v-model="opt1">
+            <option v-for="opt in options" :key="index" :value="opt.value">
+                @{opt.text}
+            </option>
 
-    </select>
-    <select name="recebedor" id="" v-model="opt2" :select="see()">
-        <option v-for="opt in options2" :key="index" :value="opt.value">
-            @{opt.text}
-        </option>
-    </select>
-    <input type="number" name="valor" id="" value="500">
-    <input type="submit" value="pagar">
-</form>
+        </select>
+        <select name="recebedor" id="" v-model="opt2">
+            <option v-for="opt in options2" :key="index" :value="opt.value" >
+                @{opt.text}
+            </option>
+        </select>
+        <input type="number" name="valor" id="" value="500">
+        <input type="submit" value="pagar">
+    </form>
 
-<form action="/end" method="post">
-    <input type="submit" value="END GAME">
-</form>
+    <form action="/end" method="post">
+        <input type="submit" value="END GAME">
+    </form>
 </div>
 <script>
     const App = {
         data() {
             return {
-                options1: [
-                    {% for j in jogadores  %}
-                    {
-                        value: "{{j}}",
-                        text: "{{j}}"
-                    },
-                    {% endfor %}],
-                options2: [{% for j in jogadores  %}
-                    {
-                        value: "{{j}}",
-                        text: "{{j}}"
-                    },
-                    {% endfor %}],
+                jogadores: {{ jogadores | safe }},
                 opt2: "",
-                opt1: ""
+                opt1: "",
             }
         },
-        methods: {
-            see() {
-                // debugger
-                console.log(
-                    this.opt1
-                )
-            },
-            get_url() {
-
-                axios
-                    .get("https://", {
-                        headers: {
-                            "Accept": "application/json"
-                        },
-                    })
-                    .then(
-                        response => {
-
+    computed: {
+        options() {
+            lista = this.jogadores.map(
+                (j) => {
+                        return {
+                            value: j.id,
+                            text: j.name
                         }
-                    )
-                    .catch(
-                        error => {
-
-                        }
-                    )
-            }
+                    
+                })
+            return lista
         },
+        options2(){
+            return this.options.filter(
+                (op)=>{
+                    return op.value!=this.opt1
+                })
+        }
+    }
     }
     const app = Vue.createApp(App)
-    app.config.compilerOptions.delimiters = ['@{', '}']    
+    app.config.compilerOptions.delimiters = ['@{', '}']
 
     app.mount("#app")
 </script>

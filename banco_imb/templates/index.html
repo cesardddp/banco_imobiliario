@@ -6,8 +6,9 @@
 
 <ul>
     {% for jogador in jogadores %}
-    <li style="{{'color:red;' if jogador==me else '' }}" >
-        {{jogador}} - ${{jogadores[jogador]}}
+    <li style="{{'color:red;' if jogador.name==me else '' }}" >
+        {{jogador.name}} - ${{'%.2f' % jogador.cash}}
+        <button onclick="delete_player({{jogador.id}})">X</button>
     </li>
     {% endfor %}
 </ul>
@@ -28,32 +29,50 @@
 </form>
 
 <script>
-    {% if me %}
-    const form = document.getElementById("form");
-    const input_nome = document.getElementById('nome')
-
-    
-    const confirm = function(event) {
-            event.preventDefault();
-            let btn_confirm = document.getElementById("confirm")
-            if (input_nome.value.trim()==="") {
-                alert("nome não pode ser vazion")
-            } 
-            input_nome.value = input_nome.value.toLocaleLowerCase()
-            if(
-                window.confirm(
-                    'Vc está on como "{{me}}", deseja substituir por "'+input_nome.value+'"?'
-                    )
-            ){
-                event.target.submit()
-                btn_confirm.style.display = 'none'
-                confirmed=true;
-            }else{
+    const delete_player = (id) => {
+        fetch(
+            '/delete/'+id,
+            {method: 'DELETE'}
+        )
+        .then((response)=>{
+            if (response.ok) {
                 location.reload()
+            }else if (response.status===400)  {
+                alert("id não existe ou player já deletado")
             }
+        })
+        .catch((error)=>{
+            alert(error)
+        }
+        )
     }
-    // attach event listener
-    form.addEventListener("submit", confirm, true);
+
+    {% if me %}
+        const form = document.getElementById("form");
+        const input_nome = document.getElementById('nome')
+
+        
+        const confirm = function(event) {
+                event.preventDefault();
+                let btn_confirm = document.getElementById("confirm")
+                if (input_nome.value.trim()==="") {
+                    alert("nome não pode ser vazion")
+                } 
+                input_nome.value = input_nome.value.toLocaleLowerCase()
+                if(
+                    window.confirm(
+                        'Vc está on como "{{me}}", deseja substituir por "'+input_nome.value+'"?'
+                        )
+                ){
+                    event.target.submit()
+                    btn_confirm.style.display = 'none'
+                    confirmed=true;
+                }else{
+                    location.reload()
+                }
+        }
+        // attach event listener
+        form.addEventListener("submit", confirm, true);
 
     {% endif %}
 

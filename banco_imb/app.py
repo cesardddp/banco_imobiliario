@@ -1,11 +1,14 @@
+from copy import copy, deepcopy
 from datetime import timedelta
 import json
 import logging
 import os
 from time import strftime
-from flask import Flask, redirect,render_template, request,g,flash, session
-from .db import load_history,load_jogadores,save_jogadores,save_jogo,get_ops_instance
+from flask import Flask, jsonify, redirect,render_template, request,g,flash, session
+from .db import save_jogadores,get_ops_instance,main as db_main
 import peewee
+import error_classes
+
 config = {
     "SECRET_KEY":"afas34$$56sad9}{`0df",
     "PERMANENT_SESSION_LIFETIME": timedelta(hours=5),
@@ -14,21 +17,31 @@ config = {
 
 app = Flask(__name__)
 
+SESSION_NAME = "name"
+
 app.config.from_mapping(config)
 db = get_ops_instance()
 
+@app.before_first_request
+def set_database():
+    db_main()
 # @app.before_first_request
 # def cria_db_and_hist():
 #     os.path.exists()
 
 @app.before_request
 def check():
-    if load_jogadores(): ...
+    name = session.get(SESSION_NAME,"")
+    try:
+        db.get_player_by_name(name)
+    except peewee.DoesNotExist as dne:
+        if name: session.pop(SESSION_NAME)
+
 
 @app.post("/pagar")
 def pagar():
     
-    jogadores = load_jogadores()
+    jogadores = db.load_jogadores()
     aviso = ""
 
     pagador_nome = request.form.get("pagador","")
@@ -36,13 +49,14 @@ def pagar():
     valor:int = int(request.form.get("valor",0))
 
 
-    
+    breakpoint()
     if pagador_nome:
-        if (jogadores.get(pagador_nome) - valor) < 0 :
-                flash(f"{pagador_nome.capitalize()}: JOGADOR SEM DINHEIRO","info")
-                return redirect("/")
-        jogadores.update({pagador_nome:jogadores[pagador_nome]-valor})
-        aviso += f"{pagador_nome.capitalize()} pagou ${valor}"
+        try:
+            db.cash_transition(pagador_nome,recebedor_nome,valor)
+        except error_classes.PlayerGoingBankrupt:
+            flash(f"{pagador_nome.capitalize()}: JOGADOR SEM DINHEIRO","info")
+        else:
+            aviso += f"{pagador_nome.capitalize()} pagou ${valor}"
 
     if recebedor_nome:# or recebedor_nome=="banco":
         jogadores.update({
@@ -63,7 +77,7 @@ def pagar():
 def novo_jogador():
 
     nome = request.form.get("nome","").strip()
-    # jogadores = load_jogadores()
+    # jogadores = db.load_jogadores()
     try:
         db.new_player(name=nome,cash=25_000.00)
     except peewee.IntegrityError as ie:
@@ -71,18 +85,19 @@ def novo_jogador():
         flash(f"{nome} já existe! Tente outro")
         return redirect("/")
 
-    if old_nome:=session.get("nome"):
-        session.pop("nome")
+    if old_nome:=session.get(SESSION_NAME):
+        session.pop(SESSION_NAME)
         try:
-            db.get_player_by_name(old_nome)
+            old_p = db.get_player_by_name(old_nome)
+            old_p.delete_instance()
         except peewee.DoesNotExist as dne:
             logging.error("player saved in session do not exist in db!\nDetails: "+str(dne))
-            
+
         flash(f"{old_nome} retirado","info")
     
-    session.update({"nome":nome})
+    session.update({SESSION_NAME:nome})
 
-    # jogadores.update({"name":nome,"cash":25000})
+    # jogadores.update({SESSION_NAME:nome,"cash":25000})
     # save_jogadores(jogadores)
 
     return redirect("/")
@@ -93,51 +108,56 @@ def novo_jogo():
     nome = ""
     if request.method == "POST":
         nome = request.form.get("nome","").strip()
-        session.setdefault("nome",nome)
+        session.setdefault(SESSION_NAME,nome)
 
     return render_template("novo_jogo.html",nome=nome)
 
 
 @app.post("/start")
 def start():
-    j = load_jogadores()
-    j.update({"start":True})
-    save_jogadores(j)
+    state = db.game_is_runing()
+    if not state:db.game_is_runing(change=True)
     return redirect("/")
 
 @app.post("/end")
 def end():
-    j = load_jogadores()
-    j.update({"start":False})
-    save_jogadores(j)
-    save_jogo()
+    state = db.game_is_runing()
+    if state:db.game_is_runing(change=True)
     return redirect("/")
 
 
 @app.get("/")
 def index():
-    jogadores=load_jogadores()
-
-    if jogadores.get('start'):
-        try:
-            jogadores.pop('start')
-        except KeyError:
-            logging.error("no start set")
+    jogadores=db.load_jogadores()
+    if db.game_is_runing():
+        jogadores_list=[
+            {"name":j.name,"cash":j.cash,"id":j.id}
+            for j in jogadores
+            ]
         return render_template(
             "jogo.html",
-            jogadores=jogadores,
-            me=session.get('nome',False) 
+            jogadores=jogadores_list,
+            me=session.get('name',False) 
         )
     else:
-        try:
-            jogadores.pop('start')
-        except KeyError:
-            logging.error("no start set")
+        # jogadores_options = [
+        #     {
+        #         "value": j.id,
+        #         "text": j.name
+        #     } for j in 
+        # ]
         return render_template(
             "index.html",
             jogadores=jogadores,
-            me=session.get('nome',False) 
+            me=session.get('name',False) 
         )
 
+
+@app.delete("/delete/<int:pk>")
+def delete_player(pk):
+    
+    if result:=db.delete_player(pk) > 0:
+        return jsonify(id=result),200
+    return "",404
 
 
